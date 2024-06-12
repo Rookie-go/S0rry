@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkrookie=self.webpackChunkrookie||[]).push([[614],{6894:e=>{e.exports=JSON.parse('{"categoryGeneratedIndex":{"title":"\u84dd\u961f","slug":"/category/\u84dd\u961f","permalink":"/S0rry/docs/category/\u84dd\u961f","sidebar":"LD_Sidebar","navigation":{"next":{"title":"1111","permalink":"/S0rry/docs/\u84dd\u961f/\u5e94\u6025\u54cd\u5e94/1"}}}}')}}]);
