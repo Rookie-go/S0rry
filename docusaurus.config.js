@@ -99,6 +99,12 @@ const config = {
             position: 'left',
             label: '靶场',
           },
+          {
+            type: 'docSidebar',
+            sidebarId: 'ZJ_Sidebar',
+            position: 'right',
+            label: '杂记',
+          },
         ],
       },
       footer: {

